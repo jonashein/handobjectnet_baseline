@@ -261,7 +261,7 @@ if __name__ == "__main__":
     parser.add_argument("--version", default=3, type=int, help="Version of synthetic HO3D dataset to use")
     parser.add_argument("--center_idx", default=9, type=int)
     parser.add_argument(
-        "--center_jittering", type=float, default=0.1, help="Controls magnitude of center jittering"
+        "--center_jittering", type=float, default=0.0, help="Controls magnitude of center jittering"
     )
     parser.add_argument(
         "--scale_jittering", type=float, default=0, help="Controls magnitude of scale jittering"

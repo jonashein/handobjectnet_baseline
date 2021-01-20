@@ -34,30 +34,30 @@ class MetricMonitor:
         if filepath is not None:
             assert os.path.isfile(filepath), "File not found: {}".format(filepath)
             self.data = pickle.load(open(filepath, "rb"))
-        self.add_meta("obj_verts_2d", {"axis_label": "Error in pixels",
+        self.add_meta("obj_verts_2d", {"axis_label": "Threshold (pixel)",
                                        "axis_limits": (0.0, 100.0)})
-        self.add_meta("obj_keypoints_2d", {"axis_label": "Error in pixels",
+        self.add_meta("obj_keypoints_2d", {"axis_label": "Threshold (pixel)",
                                            "axis_limits": (0.0, 100.0)})
-        self.add_meta("obj_verts_3d", {"axis_label": "Error in mm",
+        self.add_meta("obj_verts_3d", {"axis_label": "Threshold (mm)",
                                        "axis_scale": 1000.0, # convert m to mm
-                                       "axis_limits": (0.0, 200.0)})
-        self.add_meta("obj_depth_3d", {"axis_label": "Error in mm",
+                                       "axis_limits": (0.0, 100.0)})
+        self.add_meta("obj_depth_3d", {"axis_label": "Threshold (mm)",
                                        "axis_scale": 1000.0,  # convert m to mm
-                                       "axis_limits": (0.0, 200.0)})
-        self.add_meta("obj_translation_3d", {"axis_label": "Error in mm",
+                                       "axis_limits": (0.0, 100.0)})
+        self.add_meta("obj_translation_3d", {"axis_label": "Threshold (mm)",
                                              "axis_scale": 1000.0,  # convert m to mm
-                                             "axis_limits": (0.0, 200.0)})
-        self.add_meta("obj_rotation_3d", {"axis_label": "Error in deg",
+                                             "axis_limits": (0.0, 100.0)})
+        self.add_meta("obj_rotation_3d", {"axis_label": "Threshold (deg)",
                                           "axis_limits": (0.0, 50.0)})
-        self.add_meta("obj_drilltip_trans_3d", {"axis_label": "Error in mm",
+        self.add_meta("obj_drilltip_trans_3d", {"axis_label": "Threshold (mm)",
                                                 "axis_scale": 1000.0,  # convert m to mm
-                                                "axis_limits": (0.0, 200.0)})
+                                                "axis_limits": (0.0, 100.0)})
         self.add_meta("obj_drilltip_rot_3d", {"axis_label": "Error in deg",
                                               "axis_limits": (0.0, 50.0)})
-        self.add_meta("hand_joints_3d_cent", {"axis_label": "Error in mm",
-                                              "axis_scale": 1000.0,  # convert m to mm
-                                              "axis_limits": (0.0, 50.0)})
-        self.add_meta("hand_joints_2d", {"axis_label": "Error in pixels",
+        self.add_meta("hand_joints_3d", {"axis_label": "Threshold (mm)",
+                                         "axis_scale": 1000.0,  # convert m to mm
+                                         "axis_limits": (0.0, 50.0)})
+        self.add_meta("hand_joints_2d", {"axis_label": "Threshold (pixel)",
                                          "axis_limits": (0.0, 50.0)})
 
 
@@ -137,18 +137,18 @@ class MetricMonitor:
                             results[m][s][e] = val.item()
                     if epochs is not None and len(epochs) == 1:
                         assert len(results[m][s].keys()) == 1
-                        _, results[m][s] = results[m][s].items()[0]
+                        _, results[m][s] = list(results[m][s].items())[0]
                 if splits is not None and len(splits) == 1:
                     assert len(results[m].keys()) == 1
-                    _, results[m] = results[m].items()[0]
+                    _, results[m] = list(results[m].items())[0]
             if metrics is not None and len(metrics) == 1:
                 assert len(results.keys()) == 1
-                _, results = results.items()[0]
+                _, results = list(results.items())[0]
 
         return results
 
 
-    def means_per_epoch(self, metrics=None, splits=None, epochs=None, squeeze=True, ignore_nan=False):
+    def means_per_epoch(self, metrics=None, splits=None, epochs=None, squeeze=False, ignore_nan=False):
         """TODO"""
         result = self.get(metrics, splits, epochs, squeeze=squeeze)
         for m, s_dict in result.items():
@@ -157,6 +157,29 @@ class MetricMonitor:
                     if ignore_nan:
                         val = val[np.isfinite(val)]
                     result[m][s][e] = np.mean(val)
+        return result
+
+    def std_per_epoch(self, metrics=None, splits=None, epochs=None, squeeze=False, ignore_nan=False):
+        """TODO"""
+        result = self.get(metrics, splits, epochs, squeeze=squeeze)
+        for m, s_dict in result.items():
+            for s, e_dict in s_dict.items():
+                for e, val in e_dict.items():
+                    if ignore_nan:
+                        val = val[np.isfinite(val)]
+                    result[m][s][e] = np.std(val)
+        return result
+
+
+    def percentile_per_epoch(self, percentile, metrics=None, splits=None, epochs=None, squeeze=False, ignore_nan=False):
+        """TODO"""
+        result = self.get(metrics, splits, epochs, squeeze=squeeze)
+        for m, s_dict in result.items():
+            for s, e_dict in s_dict.items():
+                for e, val in e_dict.items():
+                    if ignore_nan:
+                        val = val[np.isfinite(val)]
+                    result[m][s][e] = np.percentile(val, percentile)
         return result
 
 
@@ -188,6 +211,27 @@ class MetricMonitor:
                         self.data[m][s][e] = other_data[m][s][e]
                         continue
                     self.data[m][s][e].extend(other_data[m][s][e])
+
+    def compute_auc(self, upper, lower=0.0, metrics=None, splits=None, epochs=None, nbins=1000):
+        assert lower < upper, "Lower limit must be strictly smaller than the upper limit!"
+        query = self.get(metrics, splits, epochs, squeeze=False)
+
+        for m, s_dict in query.items():
+            for s, e_dict in s_dict.items():
+                for e, val in e_dict.items():
+                    #print("m: {}, s: {}, e: {}".format(m,s,e))
+                    finite_val = val[np.isfinite(val)]
+                    #print("finite_val:\n{}".format(finite_val))
+                    hist, bin_edges = np.histogram(finite_val, bins=nbins, range=(lower, upper))
+                    plot_y = np.cumsum(hist)
+                    #print("plot_y:\n{}".format(plot_y))
+                    plot_y = np.concatenate([[0], plot_y], axis=0)
+                    plot_y = plot_y / val.size
+                    #print("plot_y:\n{}".format(plot_y))
+                    auc = np.trapz(plot_y, bin_edges)
+                    #print("auc:\n{}".format(auc))
+                    query[m][s][e] = auc / float(upper)
+        return query
 
 
     def plot(self, outputpath, metrics=None, splits=None, epochs=None, gridFormat=16/9, plotly=False, matplotlib=False):
@@ -339,8 +383,8 @@ class MetricMonitor:
             ax.grid(True)
             ax.tick_params(grid_alpha=0.25)
             ax.set_ylabel("Fraction of Dataset (%)")
-            ax.set_ylim(bottom=-5.0, top=105.0)
-            ax.set_yticks(np.linspace(0.0, 100.0, 6))
+            ax.set_ylim(bottom=0.0, top=100.0)
+            ax.set_yticks(np.linspace(0.0, 100.0, 11))
             axis_scale = 1.0
             if m in self.metrics.keys():
                 meta = self.metrics[m]
@@ -362,6 +406,7 @@ class MetricMonitor:
                     plot_y = np.cumsum(hist)
                     plot_y = np.concatenate([[0], plot_y], axis=0)
                     plot_y = 100.0 * plot_y / val.size # in percent
+
                     trace_name = "{}_epoch{:04d}".format(s, e)
                     if trace_name not in color_dict.keys():
                         trace_color = COLORS[len(color_dict.keys()) % len(COLORS)]
@@ -371,16 +416,25 @@ class MetricMonitor:
                         trace_color = color_dict[trace_name]
                         showInLegend = False
 
+                    name = trace_name
+                    # if name.startswith("pvnet"):
+                    #     name = "PVNet"
+                    # elif name.startswith("combined"):
+                    #     name = "Ours"
+                    # elif name.startswith("handobject"):
+                    #     name = "HandObjectNet"
+
                     ax.plot(
                         bin_edges,
                         plot_y,
                         c=trace_color,
-                        label=trace_name.replace("_", "\_"),
+                        label=name,
                     )
                     showInLegend = False
             ax.legend(loc='lower right')
             #tikzplotlib.clean_figure()
             tikzplotlib.save(os.path.join(outputpath, "{}.tex".format(m)))
+            plt.savefig(os.path.join(outputpath, "{}.png".format(m)))
             plt.close()
 
 
@@ -408,6 +462,9 @@ class MetricMonitor:
             metric_traces[m] = []
             for s, e_dict in s_dict.items():
                 for e, val in e_dict.items():
+                    finite_idxs = np.isfinite(val)
+                    if np.sum(finite_idxs) < 2:
+                        continue
                     finite_val = val[np.isfinite(val)] * axis_scale
                     upper_limit = finite_val.max()
                     if finite_val.min() < 2000.0 and upper_limit > 2000.0:
