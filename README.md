@@ -3,7 +3,7 @@
 - [Project page](http://medicalaugmentedreality.org/handobject.html) <!-- - [Paper](http://arxiv.org/abs/2004.13449) -->
 - [Synthetic Grasp Generation](https://github.com/jonashein/grasp_generator)
 - [Synthetic Grasp Rendering](https://github.com/jonashein/grasp_renderer)
-- [Real Dataset Recording](https://github.com/jonashein/handobject_dataset_recorder)
+- [Real Dataset Generation](https://github.com/jonashein/handobject_dataset_creator)
 - [HandObjectNet Baseline](https://github.com/jonashein/handobjectnet_baseline)
 - [PVNet Baseline](https://github.com/jonashein/pvnet_baseline)
 - [Combined Model Baseline](https://github.com/jonashein/baseline_combination)
@@ -22,7 +22,7 @@
 
 Retrieve the code
 ```sh
-git clone https://github.com/jonashein/handobjectnet_baseline
+git clone https://github.com/jonashein/handobjectnet_baseline.git
 cd handobjectnet_baseline
 ```
 
@@ -137,9 +137,9 @@ If you find this code useful for your research, please consider citing:
 * the publication it builds upon and that this code was originally developed for
 ```
 @inproceedings{hasson20_handobjectconsist,
-	       title     = {Leveraging Photometric Consistency over Time for Sparsely Supervised Hand-Object Reconstruction},
-	       author    = {Hasson, Yana and Tekin, Bugra and Bogo, Federica and Laptev, Ivan and Pollefeys, Marc and Schmid, Cordelia},
-	       booktitle = {CVPR},
-	       year      = {2020}
+  title     = {Leveraging Photometric Consistency over Time for Sparsely Supervised Hand-Object Reconstruction},
+  author    = {Hasson, Yana and Tekin, Bugra and Bogo, Federica and Laptev, Ivan and Pollefeys, Marc and Schmid, Cordelia},
+  booktitle = {CVPR},
+  year      = {2020}
 }
 ```
